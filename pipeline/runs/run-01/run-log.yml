@@ -1,0 +1,26 @@
+run: "01"
+pipeline_version: "0.3.13"
+pass: core
+started: "2026-05-01T15:09:47Z"
+config:
+  gdd_gate: auto-handoff
+  think_only: false
+  trace: false
+  skip_groups: []
+  allow_skip_pass: false
+
+phases:
+  - id: pass-gate
+    status: complete
+    summary: "core pass requires no previous-pass check; gate passed automatically"
+
+  - id: prime
+    status: complete
+    summary: "stack detected: pixi+solidjs+gsap+bun (vite,vitest); mygame greenfield stub; buildCmd=bun run build; testCmd=bun run test:run; reserved_bottom_px=64 (WolfGames Logo)"
+
+  - id: stabilize
+    status: complete
+    summary: "CoS walk: core-interaction/canvas/animated-dynamics/scoring all pass; cascade depth-3+ screen shake fixed inline in BoardRenderer; 14 edge-case tests added (206/226 passing); completeness gap: continue-with-snacks (meta pass); pipeline_status: partial"
+
+finished: "2026-05-01T16:33:00Z"
+status: partial

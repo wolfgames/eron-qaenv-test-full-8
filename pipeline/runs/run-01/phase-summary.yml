@@ -1,0 +1,263 @@
+pass_gate:
+  status: complete
+  pass: core
+  previous_pass_stable: true
+  previous_run_ref: null
+  skip_reason: ""
+  carry_forward: {}
+
+prime:
+  status: complete
+  project: "Scooby Snack Smash"
+  stack: "pixi + solidjs + gsap + bun (vite, vitest)"
+  existing_features: 0
+  dom_overlays:
+    - "Logo (bottom-8, ~32px) — src/game/screens/GameScreen.tsx"
+    - "PauseOverlay (full-screen overlay, no budget cost) — src/game/screens/GameScreen.tsx"
+  carry_forward:
+    target_device: "iPhone reference portrait 390x844 (dvh)"
+    game_greenfield: true
+    reserved_bottom_px: 64
+    reserved_top_px: 0
+    game_controller_stub: true
+    stack_gaps: []
+    host_rules_missing: false
+
+analyze:
+  status: complete
+  features:
+    exists: 2
+    partial: 2
+    new: 17
+    conflict: 0
+    content_gap: 5
+  conflict_breakdown:
+    reuse: 0
+    adapt: 0
+    replace: 0
+  high_risk: [play-canvas, tap-interaction, game-controller]
+  medium_risk: [loading-screen, title-screen, chapter-interstitial, treat-bubbles, special-bubbles, gravity-cascade, board-states, win-condition, loss-condition, results-screen-win, results-screen-loss, chapter-complete-screen, hud, companion-strip, level-gen-procedural, asset-bundles, chapter-progression]
+  open_questions: 4
+  carry_forward:
+    critical_integration_point: game-controller
+    transformative_hint: false
+
+plan:
+  status: complete
+  gdd_type: "additive"
+  batches: 7
+  features: 21
+  new_files: 24
+  modified_files: 8
+  viewport_budget:
+    hud_px: 120
+    board_px: 507
+    companion_px: 80
+    cell_visible_px: 48
+    total_px: 791
+    available_px: 844
+  resolved_questions: 4
+  out_of_pass_cos:
+    - "skill-curve (level-gen-procedural, chapter-progression) — gated at meta pass"
+    - "pattern-busters (special-bubbles Mystery Bag) — gated at secondary pass"
+  warnings:
+    - "collision-resolved:game-controller-dom — skill-wins (guardrail #1); gdd-ask aligns with skill; DOM stub replaced"
+    - "collision-resolved:results-screen-text — skill-wins (guardrail #15); scaffold 'Game Over' removed in batch 6 (default)"
+    - "collision-resolved:results-screen-buttons — skill-wins (guardrail #15); scaffold labels replaced in batch 6 (default)"
+    - "collision-resolved:results-screen-background — skill-wins (default); themed content replaces dark gradient in batch 6"
+    - "self-audit:src-core-readonly — PASS"
+    - "self-audit:no-stubs-placeholders — PASS"
+    - "self-audit:slug-substitution — PASS"
+    - "self-audit:collision-resolution-coverage — PASS"
+    - "self-audit:integration-file-coverage — PASS"
+    - "runcontext_ownership: viewport-budget was empty before plan; written clean by 30-plan"
+  resolved_questions_scalars:
+    q-game-name: "scooby-snack-smash"
+    q-scoring-formula: "(groupSize-1)*50 * (cascadeDepth+1) * (1 + tapEfficiency*0.5); stars: 3>=0.5, 2>=0.25, 1 otherwise"
+    q-continue-with-snacks: "out-of-scope-core-pass — button omitted; in completeness_gaps"
+    q-chapter-level-count: 10
+  carry_forward:
+    game_slug: "scooby-snack-smash"
+    hook_batch: 1
+    priority_ordering_applied: true
+    cos_deferred_to_batch:
+      canvas: 1
+      core-interaction: 2
+      animated-dynamics: 2
+      scoring: 3
+    viewport_budget_derived_from: "greenfield_defaults"
+    critical_integration_point: "game-controller"
+
+implement:
+  status: complete
+  batches_completed: "7/7"
+  files_modified: 4
+  files_created: 20
+  tests_added: 71
+  features_audited: 21
+  issues_found: 6
+  fixes_applied: 6
+  deferred:
+    - id: "continue-with-snacks-button"
+      severity: low
+      reason: "out-of-scope-core-pass — secondary monetisation button omitted; gated at meta pass per plan"
+    - id: "level-gen-procedural"
+      severity: low
+      reason: "out-of-scope-core-pass — procedural level generation deferred to meta pass"
+    - id: "chapter-progression-beyond-3"
+      severity: low
+      reason: "fallback getChapterConfig handles it; only 3 chapter configs authored"
+    - id: "special-bubble-mystery-bag"
+      severity: low
+      reason: "pattern-buster deferred to secondary pass per plan"
+  blockers: []
+  ux_gaps:
+    - id: "main-menu-button-not-in-gdd"
+      description: "ResultsScreen adds a 'Main Menu' secondary button not specified in GDD flow; benign navigation aid"
+      severity: low
+  cos_gaps:
+    - id: "continue-with-snacks"
+      description: "GDD loss screen specifies secondary 'Continue with Snacks' button; intentionally omitted for core pass"
+      severity: low
+      deferred_to: "meta-pass"
+  cos_findings:
+    - "All required player-facing strings present and matching GDD spec"
+    - "No 'Game Over' text found anywhere in codebase — guardrail enforced"
+    - "win headline: 'Scooby-Doo! You did it!' — GDD-aligned"
+    - "loss headline: 'Ruh-roh!' — GDD-aligned"
+    - "retry message: 'So close! Give it another try!' — GDD-aligned positive language"
+    - "chapter complete banner: 'Mystery Solved! 🔍' — GDD-aligned"
+    - "companion Ruh-roh reaction: 600ms duration — GDD-aligned"
+    - "board state machine: IDLE/ANIMATING/WIN/LOST — GDD-aligned"
+    - "star rating: 3 tiers (0.5/0.25 thresholds) — GDD-aligned"
+    - "tap queue: max 1 queued tap during animation — GDD-aligned"
+  copy_audit:
+    strings_checked: 18
+    strings_matching_gdd: 16
+    strings_absent_from_gdd: 1
+    strings_additional_not_in_gdd: 1
+    notes: "Absent: 'Continue with Snacks' (deferred). Additional: 'Main Menu' (benign)."
+  carry_forward:
+    test_count: 71
+    test_files: 18
+    build_status: "passing"
+    known_test_failures_pre_existing: 20
+    pre_existing_failure_path: "tests/unit/assets/"
+    game_slug: "scooby-snack-smash"
+    entry_point: "src/game/scooby-snack-smash/GameController.ts"
+    all_batches_green: true
+
+integrate:
+  status: complete
+  viewport_rederived: false
+  orphans_wired:
+    - "src/game/scooby-snack-smash/logic/win-loss.ts → BoardPlugin.ts (checkWinLoss ECS action now calls checkWinLossPure)"
+    - "src/game/scooby-snack-smash/logic/special-bubble-logic.ts → BoardPlugin.ts (getMegaSnackAffectedCells replaces inline getMegaSnackTargets; checkGhostBubbleRemoval replaces inline checkGhostRemoval)"
+    - "src/game/scooby-snack-smash/screens/loading-utils.ts → LoadingScreen.tsx (computeLoadingProgress replaces inline logic)"
+    - "src/game/scooby-snack-smash/screens/ChapterCompleteOverlay.ts → ResultsScreen.tsx (chapter-complete branch wired)"
+    - "src/game/scooby-snack-smash/screens/ChapterInterstitial.ts → ResultsScreen.tsx (chapter-start branch wired)"
+  orphans_deleted: []
+  fallbacks_unified:
+    - "style: emoji — all GPU game renderers (BlockRenderer, CompanionRenderer, HudRenderer) and DOM screens (StartScreen, LoadingScreen, ResultsScreen, ChapterCompleteOverlay, ChapterInterstitial) use emoji text fallbacks consistently"
+  unreachable: []
+  warnings:
+    - "bgContainer.eventMode was 'none' in BoardRenderer (guardrail #4 violation — kills input for entire subtree); fixed to 'passive' — cross-batch critical fix"
+    - "ResultsScreen used 'params' from useScreen() but field is named 'data'; fixed to use data() signal accessor — cross-batch integration fix"
+    - "BoardRenderer imported DropEvent/RefillEvent from board-layout.ts but those types are in BoardPlugin.ts; fixed import source"
+    - "BoardRenderer used setTimeout() for queued tap dispatch; replaced with gsap.delayedCall(0) per guardrail #3"
+    - "GameController had typeof currentBoard!.cells as type annotation (invalid TS); fixed to explicit CellState[][] type"
+    - "viewport_budget: implement.carry_forward.viewport_budget_changed absent (= false) — trusted $runContext.viewport-budget (no recompute)"
+  carry_forward:
+    viewport_budget_recomputed_total: null
+    asset_fallbacks_unified_style: "emoji"
+    unreachable_blocks_playability: false
+    orphan_wiring_blocked: []
+
+player_flow:
+  status: complete
+  journey_walked: true
+  transitions_checked:
+    - loading_to_start
+    - start_to_game
+    - game_to_results_win
+    - game_to_results_loss
+    - results_to_game_next_level
+    - results_to_game_try_again
+    - results_chapter_complete_to_interstitial
+    - interstitial_to_game_chapter2
+  fun_test_result: pass
+  issues_found: 5
+  fixes_applied: 3
+  carry_forward:
+    journey_breaks:
+      - "loading_to_start: spinner used instead of GDD-specified emoji 🍖 progress bar (minor theme drift; does not block)"
+    fun_test_failed_features: []
+    difficulty_mismatch: []
+    theme_drift:
+      - "loading"
+    cos_still_failing:
+      - "continue-with-snacks"
+
+verify:
+  status: complete
+  build: "passing"
+  tests_passing: 192
+  tests_total: 212
+  tests_game_passing: 71
+  tests_game_total: 71
+  pre_existing_failures: 20
+  pre_existing_failure_notes: "tests/unit/assets/ (2 files, createDomLoader mock gap) + scaffold lint/scripts (4 files, bun:test unavailable in vitest) — all pre-existing, none new"
+  fix_cycles: 1
+  playability: "skipped — browser-verify: smoke, browser MCP unavailable"
+  warnings:
+    - "content_fidelity_skipped: fun-facts-no-gdd-spec (GDD has no dedicated flavor/fun-facts surface)"
+  remaining_issues:
+    - "browser-mcp-unavailable"
+  carry_forward:
+    browser_verified: false
+    browser_verify_scope: "smoke"
+    unwinnable: null
+    perf_flags: []
+    guardrails_clean: true
+    content_fidelity_clean: true
+
+stabilize:
+  status: complete
+  completion_ratio: "21/22 completeness items met (95%)"
+  test_count: 206
+  tests_new: 14
+  tests_game: 85
+  known_issues:
+    - "loading-screen test comment says 'Spinner' but implementation is emoji; documentation artifact only — no code impact"
+  cos_failed: []
+  cos_rationale: {}
+  cos_results:
+    core-interaction: pass
+    canvas: pass
+    animated-dynamics: pass
+    scoring: pass
+  completeness_gaps:
+    - item: "'Continue with Snacks' button on loss screen"
+      reason: "Requires ad/currency system — gated at meta pass per plan q-continue-with-snacks resolution"
+      severity: LOW
+  warnings:
+    - "deferred-closed:cascade-depth-3-plus — animated-dynamics CoS exit criterion for depth-3+ effects (exaggerated bounce + screen shake) fixed inline in BoardRenderer.animateTurn; ~20 LOC, single renderer file"
+    - "deferred-closed:main-menu-button-not-in-gdd — benign navigation aid; not a CoS or completeness failure"
+    - "collision-resolved:results-screen-text verified — no 'Game Over' text in src/game/; confirmed passing"
+    - "collision-resolved:results-screen-buttons verified — 'Next Level'/'Try Again' labels confirmed in ResultsScreen.tsx"
+    - "collision-resolved:results-screen-background verified — themed win/loss branches in ResultsScreen.tsx"
+    - "collision-resolved:game-controller-dom verified — DOM stub replaced with Pixi-mode GameController.ts"
+    - "verify.remaining_issues:browser-mcp-unavailable — cannot close without browser MCP; carried to next pass"
+    - "player_flow.journey_breaks:loading-spinner — documentation artifact; LoadingScreen.tsx already shows 🐕 + 🍖 emoji bar"
+  pipeline_status: partial
+  carry_forward:
+    next_pass_ready: false
+    unresolved_for_next_pass:
+      - "continue-with-snacks: loss-screen 'Continue with Snacks' button (ad/currency system required; meta-pass scope)"
+      - "level-gen-procedural: procedural level generation levels 11+ (meta-pass scope)"
+      - "special-bubble-mystery-bag: Mystery Bag row-clear pattern-buster (secondary-pass scope)"
+      - "browser-smoke-test: browser MCP unavailable in verify; rerun when browser MCP available"
+    pass_stability: stable
+    build_status: passing
+    test_failures_pre_existing: 20
+    test_failures_pre_existing_path: "tests/unit/assets/ (2 files, createDomLoader mock gap) + scaffold lint/scripts (4 files)"

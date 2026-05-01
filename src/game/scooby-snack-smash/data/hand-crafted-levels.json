@@ -1,0 +1,182 @@
+[
+  {
+    "levelNumber": 1,
+    "tapBudget": 30,
+    "winThreshold": 0.8,
+    "objectives": ["Pop 56 bubbles"],
+    "grid": [
+      ["scooby-snack","scooby-snack","sandwich","sandwich","pizza","pizza","bone"],
+      ["scooby-snack","scooby-snack","sandwich","sandwich","pizza","pizza","bone"],
+      ["bone","bone","cupcake","cupcake","bone","bone","pizza"],
+      ["bone","bone","cupcake","cupcake","bone","bone","pizza"],
+      ["pizza","pizza","pizza","scooby-snack","scooby-snack","cupcake","cupcake"],
+      ["pizza","pizza","pizza","scooby-snack","scooby-snack","cupcake","cupcake"],
+      ["sandwich","sandwich","bone","bone","cupcake","cupcake","scooby-snack"],
+      ["sandwich","sandwich","bone","bone","cupcake","cupcake","scooby-snack"],
+      ["cupcake","cupcake","scooby-snack","scooby-snack","sandwich","sandwich","bone"],
+      ["cupcake","cupcake","scooby-snack","scooby-snack","sandwich","sandwich","bone"]
+    ]
+  },
+  {
+    "levelNumber": 2,
+    "tapBudget": 28,
+    "winThreshold": 0.8,
+    "objectives": ["Pop 56 bubbles"],
+    "grid": [
+      ["pizza","pizza","bone","bone","scooby-snack","scooby-snack","cupcake"],
+      ["pizza","pizza","bone","bone","scooby-snack","scooby-snack","cupcake"],
+      ["sandwich","sandwich","pizza","pizza","cupcake","cupcake","sandwich"],
+      ["sandwich","sandwich","pizza","pizza","cupcake","cupcake","sandwich"],
+      ["bone","bone","sandwich","sandwich","bone","bone","scooby-snack"],
+      ["bone","bone","sandwich","sandwich","bone","bone","scooby-snack"],
+      ["cupcake","cupcake","scooby-snack","scooby-snack","pizza","pizza","pizza"],
+      ["cupcake","cupcake","scooby-snack","scooby-snack","pizza","pizza","pizza"],
+      ["scooby-snack","scooby-snack","cupcake","cupcake","sandwich","sandwich","bone"],
+      ["scooby-snack","scooby-snack","cupcake","cupcake","sandwich","sandwich","bone"]
+    ]
+  },
+  {
+    "levelNumber": 3,
+    "tapBudget": 26,
+    "winThreshold": 0.8,
+    "objectives": ["Pop 56 bubbles"],
+    "grid": [
+      ["bone","bone","cupcake","cupcake","sandwich","sandwich","pizza"],
+      ["bone","bone","cupcake","cupcake","sandwich","sandwich","pizza"],
+      ["scooby-snack","scooby-snack","bone","bone","pizza","pizza","bone"],
+      ["scooby-snack","scooby-snack","bone","bone","pizza","pizza","bone"],
+      ["cupcake","cupcake","scooby-snack","scooby-snack","bone","bone","cupcake"],
+      ["cupcake","cupcake","scooby-snack","scooby-snack","bone","bone","cupcake"],
+      ["pizza","pizza","pizza","cupcake","cupcake","scooby-snack","scooby-snack"],
+      ["pizza","pizza","pizza","cupcake","cupcake","scooby-snack","scooby-snack"],
+      ["sandwich","sandwich","pizza","pizza","scooby-snack","scooby-snack","sandwich"],
+      ["sandwich","sandwich","pizza","pizza","scooby-snack","scooby-snack","sandwich"]
+    ]
+  },
+  {
+    "levelNumber": 4,
+    "tapBudget": 25,
+    "winThreshold": 0.8,
+    "objectives": ["Pop 56 bubbles"],
+    "grid": [
+      ["cupcake","cupcake","sandwich","sandwich","bone","bone","scooby-snack"],
+      ["cupcake","cupcake","sandwich","sandwich","bone","bone","scooby-snack"],
+      ["pizza","pizza","scooby-snack","scooby-snack","sandwich","sandwich","pizza"],
+      ["pizza","pizza","scooby-snack","scooby-snack","sandwich","sandwich","pizza"],
+      ["sandwich","sandwich","pizza","pizza","scooby-snack","scooby-snack","bone"],
+      ["sandwich","sandwich","pizza","pizza","scooby-snack","scooby-snack","bone"],
+      ["bone","bone","cupcake","cupcake","pizza","pizza","cupcake"],
+      ["bone","bone","cupcake","cupcake","pizza","pizza","cupcake"],
+      ["scooby-snack","scooby-snack","bone","bone","cupcake","cupcake","pizza"],
+      ["scooby-snack","scooby-snack","bone","bone","cupcake","cupcake","pizza"]
+    ]
+  },
+  {
+    "levelNumber": 5,
+    "tapBudget": 24,
+    "winThreshold": 0.8,
+    "objectives": ["Pop 56 bubbles"],
+    "grid": [
+      ["sandwich","sandwich","pizza","pizza","cupcake","cupcake","bone"],
+      ["sandwich","sandwich","pizza","pizza","cupcake","cupcake","bone"],
+      ["cupcake","cupcake","bone","bone","scooby-snack","scooby-snack","sandwich"],
+      ["cupcake","cupcake","bone","bone","scooby-snack","scooby-snack","sandwich"],
+      ["bone","bone","scooby-snack","scooby-snack","pizza","pizza","cupcake"],
+      ["bone","bone","scooby-snack","scooby-snack","pizza","pizza","cupcake"],
+      ["scooby-snack","scooby-snack","cupcake","cupcake","bone","bone","pizza"],
+      ["scooby-snack","scooby-snack","cupcake","cupcake","bone","bone","pizza"],
+      ["pizza","pizza","sandwich","sandwich","sandwich","sandwich","scooby-snack"],
+      ["pizza","pizza","sandwich","sandwich","sandwich","sandwich","scooby-snack"]
+    ]
+  },
+  {
+    "levelNumber": 6,
+    "tapBudget": 23,
+    "winThreshold": 0.8,
+    "objectives": ["Pop 56 bubbles"],
+    "grid": [
+      ["pizza","pizza","scooby-snack","scooby-snack","bone","bone","sandwich"],
+      ["pizza","pizza","scooby-snack","scooby-snack","bone","bone","sandwich"],
+      ["bone","bone","sandwich","sandwich","pizza","pizza","scooby-snack"],
+      ["bone","bone","sandwich","sandwich","pizza","pizza","scooby-snack"],
+      ["scooby-snack","scooby-snack","cupcake","cupcake","sandwich","sandwich","bone"],
+      ["scooby-snack","scooby-snack","cupcake","cupcake","sandwich","sandwich","bone"],
+      ["cupcake","cupcake","pizza","pizza","scooby-snack","scooby-snack","cupcake"],
+      ["cupcake","cupcake","pizza","pizza","scooby-snack","scooby-snack","cupcake"],
+      ["sandwich","sandwich","bone","bone","cupcake","cupcake","pizza"],
+      ["sandwich","sandwich","bone","bone","cupcake","cupcake","pizza"]
+    ]
+  },
+  {
+    "levelNumber": 7,
+    "tapBudget": 22,
+    "winThreshold": 0.8,
+    "objectives": ["Pop 56 bubbles"],
+    "grid": [
+      ["bone","bone","bone","cupcake","cupcake","pizza","pizza"],
+      ["bone","bone","bone","cupcake","cupcake","pizza","pizza"],
+      ["scooby-snack","scooby-snack","sandwich","sandwich","bone","bone","bone"],
+      ["scooby-snack","scooby-snack","sandwich","sandwich","bone","bone","bone"],
+      ["pizza","pizza","scooby-snack","scooby-snack","sandwich","sandwich","cupcake"],
+      ["pizza","pizza","scooby-snack","scooby-snack","sandwich","sandwich","cupcake"],
+      ["cupcake","cupcake","pizza","pizza","pizza","scooby-snack","scooby-snack"],
+      ["cupcake","cupcake","pizza","pizza","pizza","scooby-snack","scooby-snack"],
+      ["sandwich","sandwich","cupcake","cupcake","scooby-snack","scooby-snack","bone"],
+      ["sandwich","sandwich","cupcake","cupcake","scooby-snack","scooby-snack","bone"]
+    ]
+  },
+  {
+    "levelNumber": 8,
+    "tapBudget": 21,
+    "winThreshold": 0.8,
+    "objectives": ["Pop 56 bubbles"],
+    "grid": [
+      ["cupcake","cupcake","bone","bone","bone","sandwich","sandwich"],
+      ["cupcake","cupcake","bone","bone","bone","sandwich","sandwich"],
+      ["pizza","pizza","cupcake","cupcake","sandwich","sandwich","pizza"],
+      ["pizza","pizza","cupcake","cupcake","sandwich","sandwich","pizza"],
+      ["scooby-snack","scooby-snack","pizza","pizza","cupcake","cupcake","bone"],
+      ["scooby-snack","scooby-snack","pizza","pizza","cupcake","cupcake","bone"],
+      ["bone","bone","scooby-snack","scooby-snack","pizza","pizza","scooby-snack"],
+      ["bone","bone","scooby-snack","scooby-snack","pizza","pizza","scooby-snack"],
+      ["sandwich","sandwich","sandwich","bone","bone","bone","cupcake"],
+      ["sandwich","sandwich","sandwich","bone","bone","bone","cupcake"]
+    ]
+  },
+  {
+    "levelNumber": 9,
+    "tapBudget": 20,
+    "winThreshold": 0.8,
+    "objectives": ["Pop 56 bubbles"],
+    "grid": [
+      ["pizza","pizza","pizza","bone","bone","scooby-snack","scooby-snack"],
+      ["pizza","pizza","pizza","bone","bone","scooby-snack","scooby-snack"],
+      ["bone","bone","sandwich","sandwich","sandwich","pizza","pizza"],
+      ["bone","bone","sandwich","sandwich","sandwich","pizza","pizza"],
+      ["cupcake","cupcake","scooby-snack","scooby-snack","bone","bone","sandwich"],
+      ["cupcake","cupcake","scooby-snack","scooby-snack","bone","bone","sandwich"],
+      ["sandwich","sandwich","cupcake","cupcake","cupcake","sandwich","sandwich"],
+      ["sandwich","sandwich","cupcake","cupcake","cupcake","sandwich","sandwich"],
+      ["scooby-snack","scooby-snack","pizza","pizza","sandwich","sandwich","bone"],
+      ["scooby-snack","scooby-snack","pizza","pizza","sandwich","sandwich","bone"]
+    ]
+  },
+  {
+    "levelNumber": 10,
+    "tapBudget": 20,
+    "winThreshold": 0.85,
+    "objectives": ["Pop 59 bubbles — Chapter Complete!"],
+    "grid": [
+      ["scooby-snack","scooby-snack","scooby-snack","pizza","pizza","pizza","bone"],
+      ["scooby-snack","scooby-snack","scooby-snack","pizza","pizza","pizza","bone"],
+      ["cupcake","cupcake","sandwich","sandwich","scooby-snack","scooby-snack","pizza"],
+      ["cupcake","cupcake","sandwich","sandwich","scooby-snack","scooby-snack","pizza"],
+      ["bone","bone","cupcake","cupcake","sandwich","sandwich","sandwich"],
+      ["bone","bone","cupcake","cupcake","sandwich","sandwich","sandwich"],
+      ["pizza","pizza","pizza","bone","bone","cupcake","cupcake"],
+      ["pizza","pizza","pizza","bone","bone","cupcake","cupcake"],
+      ["sandwich","sandwich","bone","bone","cupcake","cupcake","scooby-snack"],
+      ["sandwich","sandwich","bone","bone","cupcake","cupcake","scooby-snack"]
+    ]
+  }
+]

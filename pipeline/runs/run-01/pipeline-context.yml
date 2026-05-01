@@ -1,0 +1,61 @@
+aliases:
+  runDir: /var/lib/agent-worker/workspace/eron-qaenv-test-full-8/pipeline/runs/run-01
+  pass: core
+  skillRoot: /var/lib/agent-worker/workspace/eron-qaenv-test-full-8/.claude/skills/pipeline-build-game
+  repoRoot: /var/lib/agent-worker/workspace/eron-qaenv-test-full-8
+  rules: /var/lib/agent-worker/workspace/eron-qaenv-test-full-8/.claude/rules
+  tsRunner: bun
+  previousRunLog: null
+  buildCmd: "bun run build"
+  testCmd: "bun run test:run"
+
+pass: core
+previous_pass_stable: null
+
+stack:
+  renderer: "pixi"
+  ui: "solidjs"
+  bundler: "vite"
+  runtime: "bun"
+  testing: "vitest"
+  animation: "gsap"
+  build_cmd: "bun run build"
+  test_cmd: "bun run test:run"
+  summary: "pixi + solidjs + gsap + bun (vite, vitest)"
+
+paths:
+  tests: "tests/"
+  modules: "src/modules/"
+  core: "src/core/"
+  game: "src/game/"
+  docs: "docs/"
+
+existing-features: []
+
+dom-overlays:
+  - element: Logo
+    file: src/game/screens/GameScreen.tsx
+    position: bottom
+    height-px: 32
+    css: "absolute bottom-8 left-1/2 -translate-x-1/2"
+  - element: PauseOverlay
+    file: src/game/screens/GameScreen.tsx
+    position: overlay
+    height-px: 0
+    css: "overlay (full-screen, does not consume viewport budget)"
+
+viewport-budget:
+  default:
+    hud_px: 120
+    board_px: 507
+    companion_px: 80
+    margin_top_px: 10
+    margin_bottom_px: 10
+    dom_reserved_bottom_px: 64
+    total_px: 791
+    available_px: 844
+    cell_visible_px: 48
+    cell_gap_px: 3
+    board_cols: 7
+    board_rows: 10
+    board_width_px: 354

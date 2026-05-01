@@ -4,17 +4,18 @@ import { useAssets } from '~/core/systems/assets';
 import { PauseOverlay, useTuning, type ScaffoldTuning } from '~/core';
 import { Logo } from '~/core/ui/Logo';
 import { useAudio } from '~/core/systems/audio';
+import { useScreen, type ScreenId } from '~/core/systems/screens';
 import { useGameTracking } from '~/game/setup/tracking';
 
 import type { GameTuning } from '~/game/tuning';
 import { useGameData } from '~/game/screens/useGameData';
-import { gameState } from '~/game/state';
 
-// Game-specific controller — swap this import for a different game
-import { setupGame } from '~/game/mygame/screens/gameController';
+// Game-specific controller — Scooby Snack Smash
+import { setupGame } from '~/game/scooby-snack-smash/GameController';
 
 export default function GameScreen() {
   const { coordinator } = useAssets();
+  const { goto } = useScreen();
   const tuning = useTuning<ScaffoldTuning, GameTuning>();
   const audio = useAudio();
   const gameData = useGameData();
@@ -28,6 +29,7 @@ export default function GameScreen() {
     audio,
     gameData,
     analytics,
+    goto: (screen, data) => { void goto(screen as ScreenId, data); },
   });
 
   onMount(() => {

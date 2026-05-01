@@ -46,19 +46,19 @@ export const manifest: Manifest = {
       assets: [{ alias: 'atlas-branding-wolf', src: 'atlas-branding-wolf.json' }],
     },
 
-    // When adding bundles for your game, use the appropriate prefix:
+    // Scooby Snack Smash — game asset bundles
+    // scene-* prefix required for GPU (Pixi) assets — NOT theme-* (silent failure in Pixi)
     //
-    //   scene-*  → GPU spritesheets, backgrounds, tiles
-    //   core-*   → GPU in-game UI atlases
-    //   fx-*     → GPU particles, effects, VFX
-    //   audio-*  → Howler sound effects and music
-    //   data-*   → JSON config files
-    //   boot-*   → DOM pre-engine splash assets
+    // NOTE: Atlas files are not yet shipped; bundles listed here for manifest contract
+    // validation. Pixi falls back gracefully when atlas is absent — emoji fallbacks
+    // are used in BlockRenderer until atlas assets arrive.
     //
-    // Examples:
-    //   { name: 'scene-tiles-mygame', assets: [{ alias: 'scene-tiles-mygame', src: 'atlas-tiles-mygame.json' }] },
-    //   { name: 'fx-blast', assets: [{ alias: 'fx-blast', src: 'vfx-blast.json' }] },
-    //   { name: 'audio-sfx-mygame', assets: [{ alias: 'audio-sfx-mygame', src: 'sfx-mygame.json' }] },
-    //   { name: 'audio-music-mygame', assets: [{ alias: 'audio-music-mygame', src: 'music-mygame.json' }] },
+    // When atlas is ready, uncomment:
+    // { name: 'scene-treats', assets: [{ alias: 'scene-treats', src: 'atlas-treats-sss.json' }] },
+    // { name: 'scene-backgrounds', assets: [{ alias: 'scene-backgrounds', src: 'atlas-bg-sss.json' }] },
+    // { name: 'scene-companion', assets: [{ alias: 'scene-companion', src: 'atlas-companion-sss.json' }] },
+    // { name: 'fx-bubbles', assets: [{ alias: 'fx-bubbles', src: 'vfx-bubbles-sss.json' }] },
+    // { name: 'audio-sfx-sss', assets: [{ alias: 'audio-sfx-sss', src: 'sfx-sss.json' }] },
+    // { name: 'audio-music-sss', assets: [{ alias: 'audio-music-sss', src: 'music-sss.json' }] },
   ],
 };

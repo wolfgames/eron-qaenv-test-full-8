@@ -1,0 +1,696 @@
+# implementation-plan.yml — Structured batch execution plan
+# Written by phase 30 (plan). Read by implement, integrate, player-flow, stabilize.
+
+game: "Scooby Snack Smash"
+gdd_type: "additive"
+total_batches: 7
+total_features: 21
+new_files: 24
+modified_files: 8
+
+viewport_budget:
+  default:
+    hud_px: 120
+    board_px: 507
+    companion_px: 80
+    margin_top_px: 10
+    margin_bottom_px: 10
+    dom_reserved_bottom_px: 64
+    total_px: 791
+    available_px: 844
+    cell_visible_px: 48
+    cell_gap_px: 3
+    board_cols: 7
+    board_rows: 10
+    board_width_px: 354
+    note: "cell 48px visible + 3px gap = 51px pitch; 7×48+6×3=354px wide, 10×48+9×3=507px tall; tap target 48px >= 44px min ✓; board fits 390px viewport (91% width); total 120+507+80+10+10=727px < 780px usable (844-64) ✓"
+
+resolved_questions:
+  - question: "What is the game slug?"
+    decision: "scooby-snack-smash"
+    rationale: "Derived from GDD title 'Scooby Snack Smash' → kebab-case; matches GDD's own example path in level-gen-handcrafted notes. All game-specific paths use src/game/scooby-snack-smash/."
+
+  - question: "What is the exact scoring formula?"
+    decision: "matchScore = (groupSize - 1) * 50; chainMultiplier = cascadeDepth + 1; specialBonus = 500 (Mega Snack) / 1000 (Mystery Bag) / 0 (none); tapEfficiency = tapsRemaining / tapBudget; levelScore = (matchScore * chainMultiplier + specialBonus) * (1 + tapEfficiency * 0.5). Stars: 3 stars if tapEfficiency >= 0.5, 2 stars if >= 0.25, 1 star otherwise."
+    rationale: "Satisfies scoring CoS: at least 2 multiplicative dimensions (groupSize × cascadeDepth × tapEfficiency). Group of 5 at cascade depth 2 with perfect taps scores ~3× a basic 2-match — meets '3× skilled vs beginner' requirement. Star thresholds (0.5/0.25 tapEfficiency) give meaningful differentiation."
+
+  - question: "Is 'Continue with Snacks' (ad/currency for +5 taps) in core pass scope?"
+    decision: "Out of scope for core pass. The button is omitted entirely in core pass — only 'Try Again' button shown on loss screen. 'Continue with Snacks' added to plan.completeness_gaps as a secondary-pass item."
+    rationale: "Currency and ad integration systems are meta-progression features gated at secondary/meta passes. Showing a disabled stub violates guardrail #15 (no placeholders). Omitting cleanly preserves playability — 'Try Again' is sufficient for a complete core-pass loop."
+
+  - question: "How many levels per chapter?"
+    decision: "10 levels per chapter. Chapter 1 = levels 1–10 (hand-crafted). Chapter 2+ = levels 11+ (procedural). Chapter-complete triggers after level 10, 20, 30, etc."
+    rationale: "GDD hand-crafted level data covers levels 1–10 exactly. Procedural generation starts at level 11. 10 levels/chapter produces ~5–7 min session per chapter, consistent with hypercasual chapter length norms."
+
+preserve_list: []
+
+completeness_gaps:
+  - item: "'Continue with Snacks' button (ad/currency +5 taps on loss screen)"
+    reason: "Requires currency or ad system — secondary/meta pass scope. Omitted in core pass per q-continue-with-snacks decision."
+    severity: LOW
+  - item: "Mystery Bag special bubble (full-row clear + mystery multiplier)"
+    reason: "Mystery Bag emerges at group ≥8; high complexity and depends on pattern-busters CoS (secondary pass). Core pass includes Mega Snack and Ghost Bubble only."
+    severity: LOW
+  - item: "Procedural level generation (levels 11+)"
+    reason: "skill-curve CoS gated at meta pass. level-gen-procedural deferred. Solvability checker deferred."
+    severity: LOW
+
+batches:
+
+  - id: 1
+    name: "Foundation — GameController + Board Canvas + Treat Bubbles"
+    priority: P0
+    player_visible: "Player sees a 7×10 Scooby-themed bubble board in the game canvas with 5 distinct treat bubble types (emoji fallbacks); board fills center of screen with HUD zone reserved at top."
+    features:
+      - game-controller
+      - play-canvas
+      - treat-bubbles
+      - seeded-rng
+      - asset-bundles
+      - game-state-signals
+    cos_covered:
+      - canvas
+    ux_zones:
+      thumb_zone:
+        - center
+      touch_targets:
+        - board-cell
+      feedback_surfaces:
+        - board
+        - loading-screen
+    acceptance:
+      # game-controller
+      - given: "GameScreen mounts and controller.init(container) is called"
+        should: "Pixi Application creates, canvas appends to container, ECS DB initializes, setActiveDb is called, board renders at correct dimensions"
+      - given: "GameScreen unmounts and controller.destroy() is called"
+        should: "GSAP tweens killed, Pixi app destroyed, ECS bridge cleaned up, setActiveDb(null) called — no console errors"
+      # play-canvas
+      - given: "Board initializes on 390×844 viewport"
+        should: "7 columns × 10 rows render; each cell ≥ 48px visible; board width ≤ 360px; HUD zone 120px reserved at top; companion zone 80px reserved at bottom"
+      - given: "Board layout computed"
+        should: "No board-cell overlaps with HUD zone (top 120px) or companion zone (bottom 80px from board bottom)"
+      # treat-bubbles
+      - given: "Board initializes with level 1 seed"
+        should: "5 distinct treat types present on board; each type renders with visually distinguishable emoji fallback (🍖, 🥪, 🦴, 🍕, 🧁); no type uses color-only distinction"
+      - given: "Same level seed used twice"
+        should: "Identical board layout produced both times (deterministic RNG)"
+      # seeded-rng
+      - given: "mulberry32 RNG initialized with seed (levelNumber × 31337 + playerUserId % 9999)"
+        should: "nextFloat() returns values in [0, 1); same seed always produces same sequence"
+      # asset-bundles
+      - given: "asset-manifest.ts loaded"
+        should: "scene-treats bundle defined with correct scene-* prefix; no theme-* prefix on GPU game bundles"
+      # game-state-signals
+      - given: "ECS DB initializes with BoardPlugin"
+        should: "score, level, tapsRemaining, starsEarned, poppedBubbles resources present in ECS; bridgeEcsToSignals wired so DOM screens read correct values"
+    test_loci:
+      - describe: "GameController lifecycle"
+        file: "tests/scooby-snack-smash/GameController.test.ts"
+        cases:
+          - "Pixi app initializes and canvas appends on init"
+          - "destroy cleans up tweens, Pixi, ECS bridge in correct order"
+          - "setActiveDb called on init and null on destroy"
+      - describe: "board-layout: viewport budget"
+        file: "tests/scooby-snack-smash/board-layout.test.ts"
+        cases:
+          - "7×10 board cells each >= 48px on 390px viewport"
+          - "board does not overlap HUD zone top 120px"
+          - "board does not overlap companion zone"
+      - describe: "seeded-rng: determinism"
+        file: "tests/scooby-snack-smash/rng.test.ts"
+        cases:
+          - "same seed produces same sequence"
+          - "nextFloat returns values in [0, 1)"
+          - "different seeds produce different sequences"
+      - describe: "treat-bubbles: board generation"
+        file: "tests/scooby-snack-smash/board-generation.test.ts"
+        cases:
+          - "5 distinct treat types present after board init"
+          - "same seed produces identical board layout"
+          - "board contains 70 cells (7×10)"
+    files:
+      state:
+        - src/game/scooby-snack-smash/state/BoardPlugin.ts
+        - src/game/scooby-snack-smash/data/treat-types.ts
+        - src/game/scooby-snack-smash/data/board-layout.ts
+        - src/game/scooby-snack-smash/logic/rng.ts
+        - src/game/state.ts
+      integration:
+        - src/game/scooby-snack-smash/GameController.ts
+        - src/game/scooby-snack-smash/renderers/BoardRenderer.ts
+        - src/game/scooby-snack-smash/renderers/BlockRenderer.ts
+        - src/game/screens/GameScreen.tsx
+        - src/game/asset-manifest.ts
+      test:
+        - tests/scooby-snack-smash/GameController.test.ts
+        - tests/scooby-snack-smash/board-layout.test.ts
+        - tests/scooby-snack-smash/rng.test.ts
+        - tests/scooby-snack-smash/board-generation.test.ts
+    how:
+      - "Replace DOM-stub gameController.ts with Pixi-mode GameController.ts: create Application (resolution: Math.min(devicePixelRatio,2), resizeTo:container), init ECS DB from BoardPlugin, setActiveDb(db), wire bridgeEcsToSignals(db), create layer containers (bg, board, hud, companion), destroy in order tweens→Pixi→ECS."
+      - "BoardRenderer.init(): compute cell size from (viewportW * 0.9 - 6*3) / 7 clamped to 48px min; position board so top edge = 120px from viewport top; create 7×10 cell hit-area sprites (eventMode='static', 48×48 minimum); pass BoardPlugin ECS state for initial render."
+      - "BlockRenderer: pool of Pixi Text sprites per treat type using emoji fallbacks (🍖 Scooby Snack, 🥪 Sandwich, 🦴 Bone, 🍕 Pizza, 🧁 Cupcake); acquire/release pattern; keyed by stable ECS entity ID not grid coordinate."
+    definition_of_done:
+      - "acceptance[] tests go red then green"
+      - "integration call site exists at files.integration (GameController.ts imported and invoked by GameScreen.tsx)"
+      - "every file in files.integration is exercised by at least one acceptance test"
+      - "CoS sub-walk clean for canvas: pieces ≥48px, board layout fits 390×844 without HUD overlap, 5 types visually distinct"
+      - "touch targets ≥ 44px per ux_zones (board-cell hit area = 48px ≥ 44px)"
+      - "screen root elements consume reserved_top_px=120 / reserved_bottom_px=80 as board positioning offsets (not 0 from prime.carry_forward.reserved_bottom_px=64 — HUD+companion consume more)"
+      - "bun run build + bun run test:run pass within 3 fix cycles"
+      - "no DOM created in GameController.ts after initGpu (guardrail #1)"
+      - "GameController imports no mygame paths — uses scooby-snack-smash slug"
+      - "BoardPlugin state and signals: score=0, level=1, tapsRemaining=tapBudget, poppedBubbles=0 on init"
+    risk: HIGH
+    risk_reason: "Central integration point: GameController touches Pixi app, ECS DB, all renderers, and destroy lifecycle. Board layout must agree with HUD and companion zones simultaneously. Rollback: revert GameController.ts to DOM stub, board renders as placeholder, continue debugging in isolation."
+
+  - id: 2
+    name: "Core Loop — Tap Interaction + Gravity Cascade + Scoring"
+    priority: P0
+    player_visible: "Player taps a cluster of 2+ matching bubbles — they burst with animation, score increments, gravity pulls remaining bubbles down, new bubbles float in from top. Invalid single tap shows rejection with no state change."
+    features:
+      - tap-interaction
+      - gravity-cascade
+      - board-states
+      - scoring
+    cos_covered:
+      - core-interaction
+      - animated-dynamics
+      - scoring
+    ux_zones:
+      thumb_zone:
+        - center
+      touch_targets:
+        - board-cell
+      feedback_surfaces:
+        - board
+        - score-hud
+        - companion-strip
+    acceptance:
+      # tap-interaction
+      - given: "Player taps a cell in a connected cluster of 2+ matching treat bubbles"
+        should: "Cluster identified via orthogonal flood-fill; all cells in cluster enter CLEARING state; burst animation fires (pop dissolve 200ms); score increases by (groupSize-1)*50; board transitions IDLE→ANIMATING→(cascade)→IDLE"
+      - given: "Player taps an isolated bubble (no orthogonal neighbor of same type)"
+        should: "No state change; no tap consumed; companion 'Ruh-roh!' reaction triggers (600ms); board stays in IDLE state"
+      - given: "Player taps during ANIMATING board state"
+        should: "Tap is queued (max 1 queued); board state does not change; queued tap executes when current animation completes"
+      # board-states
+      - given: "Board is in WIN state"
+        should: "All pointer input is blocked; no tap events processed"
+      - given: "Board is in LOST state"
+        should: "All pointer input is blocked"
+      # gravity-cascade
+      - given: "Cluster of bubbles is cleared"
+        should: "Bubbles above cleared cells fall downward with acceleration (not constant speed); each bubble uses GSAP ease-in for fall, bounce/squash on landing proportional to fall distance; only moved bubbles animate (board-diff by entity ID)"
+      - given: "Total bubble count drops below 60% of starting count"
+        should: "New bubbles float in from top of each column in staggered wave (200ms stagger between columns, 300ms float-in per bubble); treat types only in refill"
+      - given: "A 2nd cascade chain triggers in the same turn"
+        should: "Fall speed increases, overshoot magnitude increases; board edge glows"
+      - given: "A 3rd+ cascade chain triggers"
+        should: "Fast fall + exaggerated bounce + screen particles fire; board pulses"
+      # scoring
+      - given: "Player clears a group of 5 bubbles at cascade depth 2"
+        should: "Score = (5-1)*50 * (2+1) = 600 points; cascadeDepth increments with each gravity-triggered re-match"
+      - given: "Level completes with 50% taps remaining"
+        should: "Star rating = 3 stars (tapEfficiency=0.5 >= 0.5 threshold)"
+      - given: "Level completes with 10% taps remaining"
+        should: "Star rating = 1 star (tapEfficiency=0.1 < 0.25 threshold)"
+    test_loci:
+      - describe: "group-finder: cluster detection"
+        file: "tests/scooby-snack-smash/group-finder.test.ts"
+        cases:
+          - "flood-fill finds orthogonal cluster of matching type"
+          - "isolated bubble returns cluster size 1 (invalid)"
+          - "cluster size 1 triggers no state change"
+          - "cluster spanning board edge correctly bounded"
+      - describe: "cascade-resolver: gravity physics"
+        file: "tests/scooby-snack-smash/cascade-resolver.test.ts"
+        cases:
+          - "bubbles above cleared column fall to fill gaps"
+          - "only moved bubble entities animate (board-diff by entity ID)"
+          - "refill triggers when bubble count < 60% of starting count"
+          - "cascade depth increments on each re-match"
+      - describe: "score-calculator: formula"
+        file: "tests/scooby-snack-smash/score-calculator.test.ts"
+        cases:
+          - "group of 5 at cascade depth 2 = 600 points"
+          - "group of 2 at cascade depth 0 = 50 points"
+          - "star 3 when tapEfficiency >= 0.5"
+          - "star 2 when tapEfficiency >= 0.25"
+          - "star 1 otherwise"
+      - describe: "board-state-machine: input gating"
+        file: "tests/scooby-snack-smash/board-state-machine.test.ts"
+        cases:
+          - "IDLE state accepts tap input"
+          - "ANIMATING state queues tap (max 1)"
+          - "WIN state blocks all input"
+          - "LOST state blocks all input"
+          - "tap during ANIMATING executes after animation completes"
+    files:
+      state:
+        - src/game/scooby-snack-smash/state/BoardPlugin.ts
+        - src/game/scooby-snack-smash/logic/group-finder.ts
+        - src/game/scooby-snack-smash/logic/cascade-resolver.ts
+        - src/game/scooby-snack-smash/logic/score-calculator.ts
+      integration:
+        - src/game/scooby-snack-smash/GameController.ts
+        - src/game/scooby-snack-smash/renderers/BoardRenderer.ts
+      test:
+        - tests/scooby-snack-smash/group-finder.test.ts
+        - tests/scooby-snack-smash/cascade-resolver.test.ts
+        - tests/scooby-snack-smash/score-calculator.test.ts
+        - tests/scooby-snack-smash/board-state-machine.test.ts
+    how:
+      - "BoardPlugin.actions.executeTap(db, {row, col, rng}): run group-finder (orthogonal flood-fill) → if groupSize < 2 return {rejected: true}; else clear group entities, call cascade-resolver to compute drops + refills, update score/tapsRemaining resources, return animation event list {cleared[], drops[], refills[], cascadeDepth, score, isRejected}. No Pixi imports, no Math.random()."
+      - "BoardRenderer handles pointertap on board container (eventMode='passive' on container, 'static' on cells); dispatches executeTap; processes returned animation event list through ordered GSAP sequence: burst dissolve → wait → gravity drop (GSAP ease-in, bounce on landing scaled by fallDistance) → staggered refill → check for cascade re-match. Board state: IDLE→ANIMATING during sequence→IDLE on turn-complete. Queued tap executes after IDLE restored."
+      - "score-calculator.ts: pure function (no ECS imports) — takes {groupSize, cascadeDepth, specialBonus, tapsRemaining, tapBudget} → returns {points, starsEarned}. GameController reads action return value and calls ecsDb.transactions.addScore(points)."
+    definition_of_done:
+      - "acceptance[] tests go red then green"
+      - "integration call site exists at files.integration (GameController.ts routes pointertap → executeTap → animation sequence)"
+      - "every file in files.integration is exercised by at least one acceptance test"
+      - "CoS sub-walk clean for core-interaction: one-gesture tap, pointer events, invalid tap shows Ruh-roh feedback (not silence), input blocked during ANIMATING"
+      - "CoS sub-walk clean for animated-dynamics: no instant state changes, event queue drives GSAP playback, gravity acceleration (not constant speed), cascade escalation (3 tiers), board-diff by entity ID (only moved pieces animate)"
+      - "CoS sub-walk clean for scoring: at least 2 multiplicative dimensions (groupSize × cascadeDepth), base formula in place"
+      - "touch targets ≥ 44px per ux_zones (board-cell 48px)"
+      - "interaction archetype document written at src/game/scooby-snack-smash/interaction-archetype.md (required by core-interaction CoS)"
+      - "bun run build + bun run test:run pass within 3 fix cycles"
+      - "no Math.random() in actions/transactions (guardrail #9)"
+      - "no Pixi imports in group-finder.ts, cascade-resolver.ts, score-calculator.ts (pure functions)"
+    risk: HIGH
+    risk_reason: "Tap handler must coordinate board state machine, animation event queue, input queueing, and ECS state writes simultaneously. Cascade board-diff by entity ID is commonly broken. Rollback: disable cascade (instant gravity), fix board-diff correctness before re-enabling cascade escalation."
+
+  - id: 3
+    name: "Win & Loss Conditions + GPU HUD"
+    priority: P0
+    player_visible: "Player sees tap counter decrement on each pop and score animate upward in the HUD. When taps run out with insufficient pops, loss sequence fires (Scooby deflates, 'Ruh-roh!' speech). When win threshold met, win sequence fires (bounce celebration, star reveal, Next Level button)."
+    features:
+      - win-condition
+      - loss-condition
+      - hud
+    cos_covered:
+      - scoring
+      - animated-dynamics
+    ux_zones:
+      thumb_zone:
+        - center-bottom
+        - out-of-reach
+      touch_targets:
+        - next-level-button
+        - try-again-button
+      feedback_surfaces:
+        - tap-counter
+        - score-display
+        - level-label
+        - companion-strip
+        - hud
+    acceptance:
+      # hud
+      - given: "Game board is active"
+        should: "HUD displays tapsRemaining, current score, and level number in top 120px zone; text ≥ 18px; HUD does not overlap board cells"
+      - given: "Player pops a cluster"
+        should: "Score in HUD animates upward (pop-in transition) to new value within 300ms"
+      - given: "Player uses a tap"
+        should: "tapsRemaining decrements by 1 in HUD with a brief scale-pop animation"
+      # win-condition
+      - given: "poppedBubbles >= 80% of startingBubbleCount (default winThreshold)"
+        should: "Board state transitions to WIN; remaining bubbles bounce (100ms stagger, 300ms each); stars reveal staggered 3×150ms; 'Next Level' button appears (fade 300ms); navigation to 'results' screen fires"
+      - given: "Win sequence plays"
+        should: "Input is fully blocked during entire sequence"
+      # loss-condition
+      - given: "tapsUsed >= tapBudget AND poppedBubbles < winThreshold, checked after tap resolves"
+        should: "Board state transitions to LOST; remaining bubbles sag/deflate (400ms all at once); loss score tally fades in (300ms); 'Try Again' button slides up from bottom (400ms)"
+      - given: "'Try Again' button tapped"
+        should: "Same level restarts with same seed; score reset to 0; tapsRemaining reset to tapBudget"
+      - given: "Win condition triggers on same tap as last pop"
+        should: "Win sequence takes priority over loss check"
+    test_loci:
+      - describe: "win-condition: threshold check"
+        file: "tests/scooby-snack-smash/win-loss-conditions.test.ts"
+        cases:
+          - "win triggers when poppedBubbles >= 80% of startingBubbleCount"
+          - "win not triggered at 79%"
+          - "loss triggers when tapsUsed >= tapBudget AND poppedBubbles < winThreshold"
+          - "win takes priority when both conditions met on same tap"
+          - "Try Again restarts level with same seed"
+      - describe: "hud-renderer: layout and updates"
+        file: "tests/scooby-snack-smash/hud-renderer.test.ts"
+        cases:
+          - "HUD stays within top 120px zone on 390px viewport"
+          - "score display updates when ECS score resource changes"
+          - "tapsRemaining display updates on each resolved tap"
+    files:
+      state:
+        - src/game/scooby-snack-smash/state/BoardPlugin.ts
+      integration:
+        - src/game/scooby-snack-smash/GameController.ts
+        - src/game/scooby-snack-smash/renderers/HudRenderer.ts
+      test:
+        - tests/scooby-snack-smash/win-loss-conditions.test.ts
+        - tests/scooby-snack-smash/hud-renderer.test.ts
+    how:
+      - "BoardPlugin.actions.checkWinLoss(db): pure — reads poppedBubbles, startingBubbleCount, tapsUsed, tapBudget; returns {outcome: 'win'|'loss'|'none', starsEarned}. GameController calls after every resolvedTap and drives board state transition (IDLE→WIN or IDLE→LOST)."
+      - "HudRenderer: GPU Pixi layer initialized with 3 Text objects (tapsRemaining, score, level) positioned within top 120px. Subscribes to ECS resource changes via observe. No DOM elements."
+      - "Win/loss animation sequences in GameController: win = GSAP stagger bounce on remaining bubble sprites → stars pop via HudRenderer.showStars() → 'Next Level' Pixi button fades in → goto('results', {outcome:'win', stars, score}). Loss = GSAP deflate on all bubble sprites → score tally Text fades in → 'Try Again' Pixi button slides up → on tap: restart same seed."
+    definition_of_done:
+      - "acceptance[] tests go red then green"
+      - "integration call site exists at files.integration (GameController.ts calls checkWinLoss after each resolvedTap; HudRenderer.update called on ECS resource change)"
+      - "every file in files.integration is exercised by at least one acceptance test"
+      - "CoS sub-walk clean for scoring: star rating formula produces 1/2/3 stars with correct thresholds"
+      - "CoS sub-walk clean for animated-dynamics: win/loss sequences use GSAP (not instant state change); no requestAnimationFrame"
+      - "touch targets ≥ 44px per ux_zones (Next Level and Try Again buttons ≥ 44px)"
+      - "HUD text ≥ 18px for tapsRemaining and score (critical stats per UX guidelines)"
+      - "screen root elements consume reserved_top_px=120 as HUD zone (board starts below HUD)"
+      - "bun run build + bun run test:run pass within 3 fix cycles"
+      - "No 'Game Over' text anywhere in win/loss sequences (GDD requirement; scaffold text replaced)"
+    risk: MEDIUM
+    risk_reason: "Win/loss check runs after every resolved tap — timing must be correct relative to animation queue. HUD text in GPU layer (not DOM) requires Pixi Text setup. Verify: HUD renders above board, not overlapping cells."
+
+  - id: 4
+    name: "Special Bubbles + Companion Strip"
+    priority: P1
+    player_visible: "Scooby reacts visibly to every board event in the bottom strip. Mega Snack special bubble (glow ring) appears when player builds groups of 5+; tapping it clears a 1-cell radius burst. Ghost Bubble blocker requires popping all orthogonal neighbors."
+    features:
+      - special-bubbles
+      - companion-strip
+    cos_covered:
+      - animated-dynamics
+      - core-interaction
+      - canvas
+    ux_zones:
+      thumb_zone:
+        - center
+        - center-bottom
+      touch_targets:
+        - board-cell
+      feedback_surfaces:
+        - board
+        - companion-strip
+        - score-hud
+    acceptance:
+      # companion-strip
+      - given: "Player pops any cluster during gameplay"
+        should: "Scooby companion in bottom strip plays celebratory emoji/text animation (600ms)"
+      - given: "Player taps an isolated bubble (invalid)"
+        should: "Companion shows 'Ruh-roh!' speech bubble text for 600ms then returns to idle"
+      - given: "Win sequence triggers"
+        should: "Companion plays victory dance emoji loop (600ms, looped until results screen)"
+      - given: "Loss sequence triggers"
+        should: "Companion shows sheepish 'Ruh-roh!' with speech bubble"
+      # special-bubbles: Mega Snack
+      - given: "Player clears a group of exactly 5 or more matching treat bubbles"
+        should: "A Mega Snack special bubble (emoji 🌟 with glow) spawns at the tap position; normal treat bubble replaced"
+      - given: "Player taps a Mega Snack bubble"
+        should: "All bubbles in 1-cell radius (up to 8 neighbors) clear with burst animation; score += 500 (special bonus)"
+      # special-bubbles: Ghost Bubble
+      - given: "Board generates Ghost Bubble blocker at a cell"
+        should: "Ghost Bubble renders as 👻 emoji; cannot be cleared by direct tap; acts as non-matching neighbor for group-finding"
+      - given: "All orthogonal neighbors of a Ghost Bubble have been cleared"
+        should: "Ghost Bubble removes itself with a vanish animation; counts as a popped bubble for win threshold"
+      - given: "Ghost Bubble is at a board edge with only 2 orthogonal neighbors"
+        should: "Ghost Bubble removes when only those existing (non-edge) neighbors are cleared (edge case: only present neighbors count)"
+    test_loci:
+      - describe: "special-bubble-logic: Mega Snack"
+        file: "tests/scooby-snack-smash/special-bubble-logic.test.ts"
+        cases:
+          - "group >= 5 creates Mega Snack at tap position"
+          - "Mega Snack tap clears 1-cell radius (up to 8 cells)"
+          - "Mega Snack adds 500 special bonus to score"
+          - "group < 5 does not create Mega Snack"
+      - describe: "special-bubble-logic: Ghost Bubble"
+        file: "tests/scooby-snack-smash/special-bubble-logic.test.ts"
+        cases:
+          - "Ghost Bubble not cleared by direct tap"
+          - "Ghost Bubble clears when all orthogonal neighbors cleared"
+          - "Ghost Bubble at edge clears when only existing neighbors cleared"
+      - describe: "companion-renderer: reactions"
+        file: "tests/scooby-snack-smash/companion-renderer.test.ts"
+        cases:
+          - "companion shows reaction on valid tap"
+          - "companion shows Ruh-roh on invalid tap"
+          - "companion strip stays within bottom 80px companion zone"
+    files:
+      state:
+        - src/game/scooby-snack-smash/state/BoardPlugin.ts
+        - src/game/scooby-snack-smash/logic/special-bubble-logic.ts
+      integration:
+        - src/game/scooby-snack-smash/GameController.ts
+        - src/game/scooby-snack-smash/renderers/BlockRenderer.ts
+        - src/game/scooby-snack-smash/renderers/BoardRenderer.ts
+        - src/game/scooby-snack-smash/renderers/CompanionRenderer.ts
+      test:
+        - tests/scooby-snack-smash/special-bubble-logic.test.ts
+        - tests/scooby-snack-smash/companion-renderer.test.ts
+    how:
+      - "special-bubble-logic.ts: pure function — input: {groupSize, tapCell, board}; output: {specialCreated: 'mega-snack'|'ghost-remove'|null, affectedCells[], specialBonus}. Mega Snack creation appended to executeTap action return. Ghost removal checked after every neighbor-clearing cascade step."
+      - "CompanionRenderer: Pixi Container positioned at bottom of viewport (eventMode='none' — no interactive children); displays emoji Text for reactions driven by event callbacks from GameController (onValidTap, onInvalidTap, onWin, onLoss, onMilestone). GSAP for all animations."
+      - "BlockRenderer extends to handle special cell types: MegaSnack renders as 🌟 Text with GSAP pulsing glow (alpha cycle); GhostBubble renders as 👻 Text; acquired from pool by stable entity ID."
+    definition_of_done:
+      - "acceptance[] tests go red then green"
+      - "integration call site exists at files.integration (GameController passes special events to CompanionRenderer; special bubble logic called from executeTap action)"
+      - "every file in files.integration is exercised by at least one acceptance test"
+      - "CoS sub-walk clean for canvas: Mega Snack and Ghost Bubble visually distinct from treat types at a glance (different emoji)"
+      - "CoS sub-walk clean for animated-dynamics: special bubble creation animation fires on spawn; companion reactions use GSAP (no setTimeout)"
+      - "companion eventMode='none' (safe: no interactive children in strip)"
+      - "touch targets ≥ 44px per ux_zones (Mega Snack tap target = same 48px cell)"
+      - "bottom safe area: companion strip bottom edge ≥ 34px above viewport bottom"
+      - "bun run build + bun run test:run pass within 3 fix cycles"
+    risk: MEDIUM
+    risk_reason: "Ghost Bubble edge-case (board-edge neighbor count) is a subtle correctness issue. CompanionRenderer must be initialized and connected to GameController event callbacks without creating a DOM element. Verify: companion strip does not overlap board cells."
+
+  - id: 5
+    name: "Visual Identity — Loading + Title Screens"
+    priority: P1
+    player_visible: "Loading screen shows Scooby running animation (emoji fallback) on a themed background with a Snack-themed progress bar. Title screen shows 'Scooby Snack Smash' logo, Scooby peek-from-below animation, and a prominent 'Play' button in the bottom thumb zone."
+    features:
+      - loading-screen
+      - title-screen
+    cos_covered: []
+    ux_zones:
+      thumb_zone:
+        - center-bottom
+      touch_targets:
+        - play-button
+      feedback_surfaces:
+        - loading-progress-bar
+        - title-logo
+        - play-button
+    acceptance:
+      # loading-screen
+      - given: "App opens and loading screen displays"
+        should: "Background shows themed color (#BCE083 or GDD-specified), progress bar fills with 🍖 emoji icons (or tinted sprite fallback), no 'Game Over' or generic placeholder text visible"
+      - given: "All bundles loaded (progress = 100%)"
+        should: "Screen auto-transitions to start screen without player action"
+      # title-screen
+      - given: "Title screen renders"
+        should: "'Scooby Snack Smash' text logo visible at top-center; 'Play' button visible in bottom-third thumb zone (Natural zone); settings icon at top-right (Stretching zone)"
+      - given: "Player taps 'Play' button"
+        should: "Audio unlocked (unlockAudio() called); screen transitions to game screen"
+      - given: "Title screen first renders"
+        should: "Logo wobble animation plays (GSAP, not CSS transition); Scooby peek-from-below emoji animation plays"
+    test_loci:
+      - describe: "LoadingScreen: progress and transition"
+        file: "tests/scooby-snack-smash/loading-screen.test.ts"
+        cases:
+          - "progress bar advances as bundles load"
+          - "auto-transitions to start when progress = 100%"
+          - "no placeholder text visible (no 'Game Over', no 'Loading...' text)"
+      - describe: "StartScreen: Play button placement"
+        file: "tests/scooby-snack-smash/start-screen.test.ts"
+        cases:
+          - "Play button is in bottom third of screen (y > 66% of viewport height)"
+          - "Play button tap calls unlockAudio() before transition"
+          - "Settings icon is in top-right zone"
+    files:
+      state: []
+      integration:
+        - src/game/screens/LoadingScreen.tsx
+        - src/game/screens/StartScreen.tsx
+        - src/game/scooby-snack-smash/screens/startView.ts
+      test:
+        - tests/scooby-snack-smash/loading-screen.test.ts
+        - tests/scooby-snack-smash/start-screen.test.ts
+    how:
+      - "LoadingScreen.tsx: replace generic spinner with SolidJS component showing themed background (use CSS background-color matching GDD palette), progress bar fills using <For> of 🍖 emoji icons scaled by progress()/total; wire to coordinator.onProgress callback already in scaffold."
+      - "StartScreen.tsx + startView.ts: replace DOM placeholder heading with SolidJS layout — logo text at top (font-size 2.5rem, styled), Scooby peek emoji (🐕) at center-bottom with GSAP slide-up animation on mount, 'Play' button at bottom-third (bottom-[20%] or equivalent). unlockAudio() in play-button onClick before goto('game')."
+      - "DOM-only screens: SolidJS patterns apply (createSignal, not useState); all animations via GSAP (no CSS transitions); no Pixi in these screens."
+    definition_of_done:
+      - "acceptance[] tests go red then green"
+      - "integration call site exists at files.integration (LoadingScreen.tsx progress bar wired; StartScreen.tsx Play button calls unlockAudio)"
+      - "every file in files.integration is exercised by at least one acceptance test"
+      - "Play button in bottom thumb zone (Natural zone per UX guidelines; bottom-third placement ✓)"
+      - "touch targets ≥ 44px per ux_zones (Play button ≥ 44×44px)"
+      - "no placeholder or scaffold copy in player-facing text (guardrail #15): no 'Start Screen' heading, no generic loading spinner text"
+      - "SolidJS patterns used (no React hooks)"
+      - "bun run build + bun run test:run pass within 3 fix cycles"
+    risk: MEDIUM
+    risk_reason: "startView.ts replaces a DOM placeholder — must preserve scaffold wiring (unlockAudio, loadCore, goto) while replacing visual content. LoadingScreen progress wiring already exists; verify no regression."
+
+  - id: 6
+    name: "Level Data + Results Screens"
+    priority: P1
+    player_visible: "10 hand-crafted levels load correctly (Level 1 is always solvable tutorial board). Win results screen shows Scooby victory dance emoji, star rating (1-3), score pop-in, and 'Next Level' button. Loss screen shows 'Ruh-roh!' Scooby with positive retry copy and 'Try Again' button."
+    features:
+      - level-gen-handcrafted
+      - results-screen-win
+      - results-screen-loss
+    cos_covered:
+      - scoring
+    ux_zones:
+      thumb_zone:
+        - center-bottom
+      touch_targets:
+        - next-level-button
+        - try-again-button
+      feedback_surfaces:
+        - score-display
+        - star-rating
+        - companion-animation
+    acceptance:
+      # level-gen-handcrafted
+      - given: "Level 1 loads"
+        should: "hand-crafted-levels.json provides a 7×10 grid with tapBudget and objectives; Level 1 grid is always solvable (has at least one valid group of 2+ on initial board)"
+      - given: "Levels 1-10 all loaded"
+        should: "All 10 levels have valid grids (7 columns × 10 rows), non-zero tapBudget, and at least one valid group on initial board"
+      # results-screen-win
+      - given: "Results screen renders with outcome='win'"
+        should: "Scooby victory emoji 🐕🎉 displays; score value animates counting upward (200ms per digit); star rating shows 1, 2, or 3 stars matching starsEarned; 'Next Level' button visible in Natural thumb zone"
+      - given: "'Next Level' button tapped on win screen"
+        should: "Navigate to game screen with levelNumber+1"
+      - given: "Win results screen renders"
+        should: "No 'Game Over' text present anywhere on screen"
+      # results-screen-loss
+      - given: "Results screen renders with outcome='loss'"
+        should: "Scooby 'Ruh-roh!' 🐕😬 emoji displays; positive retry copy visible ('So close! Give it another try!'); 'Try Again' button visible in Natural thumb zone; no 'Game Over' text"
+      - given: "'Try Again' button tapped on loss screen"
+        should: "Navigate to game screen with same levelNumber and same seed"
+    test_loci:
+      - describe: "hand-crafted-levels: validity"
+        file: "tests/scooby-snack-smash/hand-crafted-levels.test.ts"
+        cases:
+          - "all 10 levels have 7×10 grid dimensions"
+          - "all levels have non-zero tapBudget"
+          - "Level 1 has at least one valid group of 2+ on initial board"
+          - "pool.length == 10 (content sufficiency: 10 levels >= 10-level chapter requirement)"
+      - describe: "ResultsScreen: win and loss branches"
+        file: "tests/scooby-snack-smash/results-screen.test.ts"
+        cases:
+          - "win branch shows victory emoji and star count matching starsEarned"
+          - "win branch shows Next Level button"
+          - "loss branch shows Ruh-roh copy and Try Again button"
+          - "no 'Game Over' text in either branch"
+          - "Next Level navigates to levelNumber+1"
+          - "Try Again navigates to same level same seed"
+    files:
+      state: []
+      integration:
+        - src/game/screens/ResultsScreen.tsx
+        - src/game/scooby-snack-smash/data/hand-crafted-levels.json
+      test:
+        - tests/scooby-snack-smash/hand-crafted-levels.test.ts
+        - tests/scooby-snack-smash/results-screen.test.ts
+    how:
+      - "hand-crafted-levels.json: JSON array of 10 level objects {levelNumber, grid (7×10 array of cellType strings), tapBudget, winThreshold, objectives[]}. Level 1 grid is designed with large obvious clusters for tutorial. All levels hand-authored as JSON — no procedural generation."
+      - "ResultsScreen.tsx: add win/loss branch via SolidJS Show component reading props.outcome (passed via goto params). Win branch: emoji header 🐕🎉, GSAP count-up for score (createSignal counting from 0), star row (3 star emojis, stagger reveal via GSAP delayedCall), 'Next Level' button bottom-center. Loss branch: emoji header 🐕😬, positive copy, score tally, 'Try Again' button bottom-center. No 'Game Over' text."
+      - "Remove all scaffold placeholder text from ResultsScreen.tsx ('Game Over', 'Play Again', 'Main Menu') — full replacement with GDD-specified content."
+    definition_of_done:
+      - "acceptance[] tests go red then green"
+      - "integration call site exists at files.integration (ResultsScreen.tsx uses goto params for outcome; game navigates to 'results' with {outcome, stars, score, levelNumber, seed})"
+      - "every file in files.integration is exercised by at least one acceptance test"
+      - "CoS sub-walk clean for scoring: star rating visible on win screen with correct 1/2/3 star display"
+      - "touch targets ≥ 44px per ux_zones (Next Level and Try Again buttons ≥ 44×44px)"
+      - "No 'Game Over' text in ResultsScreen.tsx (collision-resolved:results-screen-text)"
+      - "Correct button labels: 'Next Level' on win, 'Try Again' on loss (collision-resolved:results-screen-buttons)"
+      - "content sufficiency: hand-crafted-levels.json has 10 entries >= 10-level chapter-1 requirement"
+      - "bun run build + bun run test:run pass within 3 fix cycles"
+    risk: MEDIUM
+    risk_reason: "ResultsScreen.tsx is a full content replacement of the scaffold file — all scaffold placeholder text removed. Must preserve navigation wiring while replacing visuals. Win/loss branch requires goto() to pass outcome params correctly."
+
+  - id: 7
+    name: "Chapter System — Progression + Interstitials"
+    priority: P2
+    player_visible: "Completing Level 10 triggers a 'Mystery Solved!' chapter-complete overlay with haunted location reveal and gang celebration. Starting a new chapter shows a full-screen haunted location illustration with a Scooby caption and 'Let's Go!' button."
+    features:
+      - chapter-progression
+      - chapter-interstitial
+      - chapter-complete-screen
+    cos_covered: []
+    ux_zones:
+      thumb_zone:
+        - center-bottom
+      touch_targets:
+        - lets-go-button
+        - continue-button
+      feedback_surfaces:
+        - chapter-illustration
+        - mystery-solved-banner
+        - companion-animation
+        - caption-text
+    acceptance:
+      # chapter-progression
+      - given: "Player completes level 10 (last level of chapter 1)"
+        should: "Chapter-complete overlay renders before navigating to next chapter interstitial; chapter 2 begins at level 11"
+      - given: "Player completes any non-final level in a chapter"
+        should: "Results screen shows win screen normally; no chapter-complete overlay; level increments by 1"
+      # chapter-interstitial
+      - given: "New chapter starts (first level of chapter)"
+        should: "Chapter interstitial screen shows: full-screen haunted location emoji background 🏚️, 2-line Scooby caption text, 'Let's Go!' button in Natural (bottom-third) thumb zone"
+      - given: "Player taps 'Let's Go!' button"
+        should: "Navigate to game screen for chapter's first level"
+      # chapter-complete-screen
+      - given: "Chapter complete overlay renders"
+        should: "'Mystery Solved! 🔍' banner visible; Scooby celebration emoji 🐕🎉 animates; 'Continue' button visible in Natural zone"
+      - given: "Player taps 'Continue' on chapter-complete overlay"
+        should: "Navigate to next chapter's interstitial screen"
+    test_loci:
+      - describe: "chapter-progression: level and chapter logic"
+        file: "tests/scooby-snack-smash/chapter-progression.test.ts"
+        cases:
+          - "level 10 triggers chapter complete (10 levels per chapter)"
+          - "level 9 does not trigger chapter complete"
+          - "chapter 2 starts at level 11"
+          - "chapter index = Math.floor((levelNumber - 1) / 10)"
+      - describe: "chapter-interstitial: rendering and navigation"
+        file: "tests/scooby-snack-smash/chapter-interstitial.test.ts"
+        cases:
+          - "Let's Go button is in bottom-third of screen"
+          - "caption text shows 2 lines"
+          - "tapping Let's Go navigates to first level of chapter"
+    files:
+      state:
+        - src/game/scooby-snack-smash/state/BoardPlugin.ts
+        - src/game/scooby-snack-smash/data/chapter-config.ts
+      integration:
+        - src/game/screens/ResultsScreen.tsx
+        - src/game/scooby-snack-smash/screens/ChapterInterstitial.ts
+        - src/game/scooby-snack-smash/screens/ChapterCompleteOverlay.ts
+      test:
+        - tests/scooby-snack-smash/chapter-progression.test.ts
+        - tests/scooby-snack-smash/chapter-interstitial.test.ts
+    how:
+      - "chapter-config.ts: array of {chapterId, name, locationEmoji, caption1, caption2, startLevel, endLevel} for chapters 1+. Chapter 1: 'The Old Haunted Mansion 🏚️', levels 1–10. Chapter 2: 'The Abandoned Theme Park 🎢', levels 11–20. Wire chapter detection: chapterIndex = Math.floor((levelNumber - 1) / 10)."
+      - "ChapterInterstitial.ts: SolidJS-based DOM screen branch within 'results' screen route (Results screen checks goto params for {outcome: 'chapter-start'}). Renders emoji background, caption, 'Let's Go!' button at bottom-third. Navigation from ResultsScreen win-branch when isLastLevelOfChapter."
+      - "ChapterCompleteOverlay.ts: overlay rendered OVER the results screen (absolute positioned SolidJS component in ResultsScreen.tsx) when outcome='chapter-complete'. Emoji banner + celebration animation via GSAP delayedCall. 'Continue' navigates to {outcome: 'chapter-start', chapterId: next}."
+    definition_of_done:
+      - "acceptance[] tests go red then green"
+      - "integration call site exists at files.integration (ResultsScreen.tsx routes to chapter-complete overlay and chapter-interstitial correctly; chapter-progression logic called from GameController)"
+      - "every file in files.integration is exercised by at least one acceptance test"
+      - "'Let's Go!' and 'Continue' buttons in Natural thumb zone (bottom-third ≥ y > 66%)"
+      - "touch targets ≥ 44px per ux_zones"
+      - "no new top-level screen IDs introduced — chapter screens are branches/overlays within 'results' screen ID (collision-resolved: valid screen IDs)"
+      - "bun run build + bun run test:run pass within 3 fix cycles"
+    risk: MEDIUM
+    risk_reason: "Chapter screen routing must stay within existing 'results' screen ID — cannot add new top-level screen IDs. ChapterInterstitial and ChapterCompleteOverlay must be branches/overlays, not new routes. Verify: goto('results', {outcome:'chapter-start'}) navigates correctly."
+
+warnings:
+  # Collision resolutions (4 required from gdd-analysis.yml.warnings[])
+  - "collision-resolved:game-controller-dom — skill-wins (guardrail #1: no DOM in GPU game code); gdd-ask=pixi-gpu-game already aligns with skill requirement; scaffold DOM stub in src/game/mygame/screens/gameController.ts replaced with Pixi-mode GameController.ts at src/game/scooby-snack-smash/GameController.ts"
+  - "collision-resolved:results-screen-text — skill-wins (guardrail #15: no placeholder/scaffold copy); gdd-ask=no-game-over aligns with skill; scaffold 'Game Over' heading removed in batch 6 ResultsScreen.tsx replacement (default)"
+  - "collision-resolved:results-screen-buttons — skill-wins (guardrail #15: no scaffold copy in shipped code); gdd-ask='Next Level'/'Try Again' honored; scaffold 'Play Again'/'Main Menu' removed in batch 6 (default)"
+  - "collision-resolved:results-screen-background — skill-wins (default); gdd-ask=themed-win/loss-branches honored via SolidJS Show branching; scaffold generic dark gradient replaced with themed emoji content in batch 6 (default)"
+  # Self-audit findings
+  - "self-audit:src-core-readonly — PASS: no batches[].files.* entry lands under src/core/"
+  - "self-audit:no-stubs-placeholders — PASS: no resolved_questions_scalars value contains placeholder/stub/TBD text; q-continue-with-snacks resolved as out-of-scope (not stubbed)"
+  - "self-audit:slug-substitution — PASS: game_slug=scooby-snack-smash applied to all game-specific paths; no <game-root> or mygame literals in batches[].files.*"
+  - "self-audit:collision-resolution-coverage — PASS: all 4 collision:* entries in gdd-analysis.yml.warnings[] have matching collision-resolved:* entries above"
+  - "self-audit:integration-file-coverage — PASS: every file in batches[].files.integration is referenced by at least one acceptance[].should"
+  - "runcontext_ownership: viewport-budget was {} (empty) in pipeline-context.yml before plan ran — 30-plan writes clean value; no prior value to flag as violation"

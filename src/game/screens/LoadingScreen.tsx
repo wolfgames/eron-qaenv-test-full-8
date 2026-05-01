@@ -1,11 +1,11 @@
 import { onMount, createMemo, Show } from 'solid-js';
-import { Spinner } from '@wolfgames/components/solid';
 import { useScreen } from '~/core/systems/screens';
 import { useAssets, useLoadingState } from '~/core/systems/assets';
 import { useManifest } from '@wolfgames/components/solid';
 import { useTuning, type ScaffoldTuning } from '~/core';
 import { Logo } from '~/core/ui/Logo';
 import type { GameTuning } from '~/game/tuning';
+import { computeLoadingProgress } from '~/game/scooby-snack-smash/screens/loading-utils';
 
 export function LoadingScreen() {
   const { goto } = useScreen();
@@ -37,16 +37,7 @@ export function LoadingScreen() {
 
   const progress = createMemo(() => {
     const s = loadingState();
-    if (targetBundles.length === 0) return 100;
-    let sum = 0;
-    for (const name of targetBundles) {
-      if (s.loaded.includes(name)) {
-        sum += 1;
-      } else if (s.loading.includes(name)) {
-        sum += 0.5;
-      }
-    }
-    return (sum / targetBundles.length) * 100;
+    return computeLoadingProgress(s, targetBundles);
   });
 
   const themeLoaded = createMemo(() => {
@@ -112,12 +103,21 @@ export function LoadingScreen() {
           </div>
         }
       >
-        <Spinner size="lg" class="w-24 h-24 text-gray-800" />
-        <div class="mt-8 w-64 h-2 bg-white/30 rounded-full overflow-hidden">
-          <div
-            class="h-full bg-gray-800 rounded-full transition-all duration-300"
-            style={{ width: `${progress()}%` }}
-          />
+        {/* Scooby running animation — shifts right as progress increases */}
+        <div class="relative w-64 h-12 mb-2" aria-hidden="true">
+          <span
+            class="absolute text-5xl transition-all duration-300"
+            style={{ left: `calc(${progress()}% - 2rem)`, top: 0, transform: 'scaleX(-1)' }}
+          >🐕</span>
+        </div>
+        {/* Scooby Snack progress bar */}
+        <div class="w-64 h-6 bg-white/40 rounded-full overflow-hidden flex">
+          {Array.from({ length: 10 }, (_, i) => (
+            <span
+              class="flex-1 flex items-center justify-center text-base transition-opacity duration-300"
+              style={{ opacity: progress() >= (i + 1) * 10 ? 1 : 0.2 }}
+            >🍖</span>
+          ))}
         </div>
       </Show>
 
